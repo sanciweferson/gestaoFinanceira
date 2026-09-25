@@ -31,7 +31,7 @@ export default async function HomePage() {
 
   return (
     <FinanceDashboard
-      user={{ id: user.id, email: user.email || '' }}
+      user={{ id: user.id, email: user.email || '', fullName: user.user_metadata?.full_name || '', avatarPath: user.user_metadata?.avatar_path || '' }}
       initialTransactions={initialTransactions}
       initialError={error?.message || ''}
     />

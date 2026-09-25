@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
 
@@ -67,6 +68,16 @@ export default function FinanceDashboard({ user, initialTransactions, initialErr
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
   const [error, setError] = useState(initialError);
+  const [avatarUrl, setAvatarUrl] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user.avatarPath) return () => { cancelled = true; };
+    createClient().storage.from('avatars').createSignedUrl(user.avatarPath, 3600).then(({ data, error: avatarError }) => {
+      if (!cancelled && !avatarError) setAvatarUrl(data?.signedUrl || '');
+    });
+    return () => { cancelled = true; };
+  }, [user.avatarPath]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -224,7 +235,7 @@ export default function FinanceDashboard({ user, initialTransactions, initialErr
       </aside>
 
       <main className="main-content" id="inicio">
-        <header className="topbar"><div><p className="eyebrow">CONTROLE PESSOAL</p><h1>Visão geral</h1></div><div className="topbar-actions"><span className="account-email">{user.email}</span><label className="month-picker"><span className="sr-only">Mês dos lançamentos</span><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label><button className="button button-primary" onClick={openNewEntry} type="button"><span aria-hidden="true">＋</span> Novo lançamento</button><button className="button button-secondary logout-button" onClick={signOut} type="button">Sair</button></div></header>
+        <header className="topbar"><div><p className="eyebrow">CONTROLE PESSOAL</p><h1>Visão geral</h1></div><div className="topbar-actions"><Link className="profile-summary" href="/profile"><span className={`profile-avatar${avatarUrl ? ' has-photo' : ''}`} style={avatarUrl ? { backgroundImage: `url("${avatarUrl}")` } : undefined} aria-label={avatarUrl ? `Foto de ${user.fullName || user.email}` : undefined}>{avatarUrl ? '' : (user.fullName || user.email || 'U').slice(0, 1).toUpperCase()}</span><span className="profile-summary-copy"><strong>{user.fullName || 'Meu perfil'}</strong><small>{user.email}</small></span></Link><label className="month-picker"><span className="sr-only">Mês dos lançamentos</span><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label><button className="button button-primary" onClick={openNewEntry} type="button"><span aria-hidden="true">＋</span> Novo lançamento</button><button className="button button-secondary logout-button" onClick={signOut} type="button">Sair</button></div></header>
 
         {error && <div className="notice-error" role="alert"><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="Fechar mensagem">×</button></div>}
         <section className="summary-grid" aria-label="Resumo do mês">
@@ -241,7 +252,7 @@ export default function FinanceDashboard({ user, initialTransactions, initialErr
           </tbody></table> : <div className="empty-state visible"><span className="empty-icon">↕</span><strong>Nenhum lançamento por aqui</strong><p>Adicione uma receita ou despesa para começar.</p><button className="button button-primary" onClick={openNewEntry} type="button">＋ Adicionar lançamento</button></div>}
           </div>
         </section>
-        <footer className="page-footer"><span>Feito para cuidar melhor do seu dinheiro.</span><span>Conta: {user.email}</span></footer>
+        <footer className="page-footer"><span>Feito para cuidar melhor do seu dinheiro.</span><span><Link href="/terms">Termos de Uso</Link> · <Link href="/privacy">Privacidade</Link> · Conta: {user.email}</span></footer>
       </main>
 
       <dialog className="entry-dialog" ref={entryDialog} onCancel={(event) => { event.preventDefault(); setEntryOpen(false); }}>
